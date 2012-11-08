@@ -1,6 +1,6 @@
 
 var scanner = require("./scanner");
-var tokener = require("./tokener");
+var tokener = require("./tokener2");
 
 var string_tokens = [
 	"break",
@@ -33,19 +33,10 @@ var string_tokens = [
 
 var memory_space = {};
 
-scanner.getTokens("tests/test1.js", function(raw_tokens) {
+scanner.getTokens("tests/test1-3.js", function(raw_tokens) {
 	tokener.getTokens(raw_tokens, function( tokens ) {
-		
-		
-
-
-
-
-
-
-
-
-
-		console.log(tokens);
+		tokens.map(function(token) {
+			console.log(token.operator, token.subject, token.object);
+		});
 	});
 });

@@ -1,17 +1,14 @@
-
 exports.getTokens = function(raw_tokens, callback) {
 	var _tokens = [];
 
 	var _currentState = null;
 	var _currentExpr = [];
 
-	return iteratorOverTokens(raw_tokens, 0, function() {
-		return callback(_tokens);
-	});
+	return iteratorOverTokens(raw_tokens, 0, callback);
 
 	function iteratorOverTokens( tokens, index, callback ) {
 		if(tokens.length === index) {
-			return callback();
+			return callback(_tokens);
 		}
 
 		var this_token = tokens[index];
@@ -112,5 +109,5 @@ exports.getTokens = function(raw_tokens, callback) {
 			_currentState = null;
 			_currentExpr = [];
 		}
-	}
+	};
 };

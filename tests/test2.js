@@ -8,6 +8,6 @@ yeah
 */
 
 // bu
-var c = b + a;
+var c = b + a * b;
 
 console.log(c);
