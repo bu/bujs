@@ -2,10 +2,13 @@
 var scanner = require("./includes/scanner");
 var tokener = require("./includes/parser");
 
-scanner.getTokens("tests/test1-3.js", function(raw_tokens) {
+scanner.getTokens("tests/test2.js", function(raw_tokens) {
 	tokener.getTokens(raw_tokens, function( tokens ) {
 		tokens.map(function(token) {
-			console.log(token.operator, token.subject, token.object);
+			console.log("OPCODE", token.operator);
+			console.log("SUBJECT", token.subject);
+			console.log("OBJECT", token.object);
+			console.log("-------------------------------------------");
 		});
 	});
 });

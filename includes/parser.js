@@ -20,6 +20,10 @@ exports.getTokens = function(raw_tokens, callback) {
 		var this_token = tokens[index];
 		var next_token = (index <  tokens.length) ? tokens[index + 1] : null;
 
+		var last_stack_token = _tokens[_tokens.length - 1];
+
+		//console.log(_currentState, _currentExpr, this_token);
+
 		if(_currentState === null){
 			if(this_token.token === "STRING") {
 				if(this_token.string === "var") {
@@ -31,7 +35,7 @@ exports.getTokens = function(raw_tokens, callback) {
 
 				if(this_token.string === "//") {
 					_currentState = "COMMENT_ONELINE";
-					_currentExpr = { operator: "COMMENT", subject: "" };
+					_currentExpr = { operator: "COMMENT", subject: null };
 
 					return next();
 				}
@@ -42,6 +46,94 @@ exports.getTokens = function(raw_tokens, callback) {
 
 					return skipNext();
 				}
+
+				_currentState = "STRING";
+				_currentExpr.subject = this_token;
+
+				return next();
+			}
+
+			if(this_token.token === "PARENTHESES") {
+				_currentState = "FUNC_CALL";
+				_currentExpr.operator = "FUNC_CALL";
+				_currentExpr.arguments = [];
+				
+				// eg. bu(); console.log();
+				if(this_token.string === "()") {
+					return stay();
+				}
+
+				return next();
+			}
+		}
+
+		if(_currentState === "FUNC_CALL") {
+			if(this_token.token === "LINE_DELIMITER") {
+				_currentExpr = { operator: null , subject: null, object: null};
+				_currentState = null;
+
+				return next();
+			}
+
+			if(this_token.token === "PARENTHESES") {
+				if(_currentExpr.object !== null) {
+					_currentExpr.arguments.push(_currentExpr.object);
+					_currentExpr.object = null;
+				}
+
+				if(last_stack_token.operator === "GETTER") {
+					var _last_token = _tokens.pop();
+
+					_tokens.push({ operator: "FUNC_CALL", subject: _last_token, object: _currentExpr.arguments });
+
+					_currentExpr = { operator: null , subject: null, object: null};
+					_currentState = null;
+
+					return next();
+				}
+			}
+
+			if(this_token.token === "COMMA") {
+				_currentExpr.arguments.push(_currentExpr.object);
+				_currentExpr.object = null;
+			}
+
+			_stateStack.push(_currentState);
+			_exprStack.push(_currentExpr);
+
+			_currentState = "EXPR";
+			_currentExpr = { operator: null, subject: null, object: null };
+			
+			if(this_token.token === "COMMA") {
+				return next();
+			}
+
+			return stay();
+		}
+
+		if(_currentState === "STRING") {
+			if(this_token.token === "DOT" && next_token.token === "STRING") {
+				_currentExpr.object = next_token;
+				_currentExpr.operator = "GETTER";
+
+				_tokens.push(_currentExpr);
+				
+				_currentExpr = { operator: null, subject: null, object: null };
+				_currentState = null;
+
+				return skipNext();
+			}
+			
+			// eg. bu();
+			if(this_token.token === "PARENTHESES") {
+				_currentExpr.operator = "GETTER";
+
+				_tokens.push(_currentExpr);
+
+				_currentState = null;
+				_currentExpr = { operator: null, subject: null, object: null };
+
+				return stay();
 			}
 		}
 
@@ -61,7 +153,6 @@ exports.getTokens = function(raw_tokens, callback) {
 			}
 
 			_currentExpr.subject.string += this_token.string;
-
 			return next();
 		}
 
@@ -75,7 +166,7 @@ exports.getTokens = function(raw_tokens, callback) {
 					_currentState = null;
 					_currentExpr = { operator: null, subject: null, object: null };
 
-					return next();
+					return skipNext();
 				}
 			}
 
@@ -128,7 +219,7 @@ exports.getTokens = function(raw_tokens, callback) {
 		}
 
 		if(_currentState === "STRING_DELIMITER") {
-			if(this_token.token === "STRING_DELIMITER") {
+			if(this_token.token === "STRING_DELIMITER" && this_token.string === _currentExpr.delimiter) {
 				var previous_state = _stateStack.pop();
 				var previous_expr = _exprStack.pop();
 				
@@ -155,7 +246,7 @@ exports.getTokens = function(raw_tokens, callback) {
 
 		if(_currentState === "EXPR") {
 			// back to the last state
-			if(this_token.token === "LINE_DELIMITER" || this_token.token === "COMMA") {
+			if(this_token.token === "LINE_DELIMITER" || this_token.token === "COMMA" || this_token.token === "PARENTHESES") {
 				var previous_state = _stateStack.pop();
 				var previous_expr = _exprStack.pop();
 				
@@ -193,6 +284,23 @@ exports.getTokens = function(raw_tokens, callback) {
 						_currentExpr.subject.string += "." + next_token.string;
 						return skipNext();
 					}
+
+					_currentExpr.object.string += "." + next_token.string;
+					return skipNext();
+				}
+
+				if(previous_token.token === "STRING" && next_token.token === "STRING") {
+					if(_currentExpr.subject !== null) {
+						_currentExpr.subject = { operator: "GETTER", subject: previous_token, object: next_token };
+
+						return skipNext();
+					}
+
+					_currentExpr.object = { operator: "GETTER", subject: previous_token, object: next_token };
+
+					return skipNext();
+
+
 				}
 			}
 
@@ -201,7 +309,7 @@ exports.getTokens = function(raw_tokens, callback) {
 				_exprStack.push(_currentExpr);
 
 				_currentState = "STRING_DELIMITER";
-				_currentExpr = { operator: "STRING", subject: null, object: null };
+				_currentExpr = { operator: "STRING", subject: null, object: null, delimiter: this_token.string };
 
 				return next();
 			}
