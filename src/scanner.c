@@ -1,9 +1,9 @@
 #include <stdio.h>
 
+#include "scanner.h"
 #include "tokens.h"
-#include "token_storage.h"
 
-int main(void) {
+Queue* scanner_scan(char* filename) {
 	FILE *fp;
 	Queue token_cache;
 
@@ -14,7 +14,7 @@ int main(void) {
 	char current_state = 0;
 	int file_pos = 0;
 
-	fp = fopen("ex2.js", "r");
+	fp = fopen("ex1.js", "r");
 
 	if(fp == NULL) {
 		printf("failed to read file");
@@ -117,5 +117,5 @@ int main(void) {
 		file_pos++;
 	}
 
-	return 0;
+	return &token_cache;
 }

@@ -1,2 +1,2 @@
-all: scanner.c token_storage.c
-	clang scanner.c token_storage.c
+all: scanner.c token_storage.c jsjs.c
+	clang scanner.c token_storage.c jsjs.c
